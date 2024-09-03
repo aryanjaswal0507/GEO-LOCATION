@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geolocation Attendance</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #status { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Geolocation Attendance</h1>
+    <button id="checkInBtn">Check In</button>
+    <div id="status"></div>
+
+    <script>
+        document.getElementById('checkInBtn').addEventListener('click', function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    fetch('/api/validate-location', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ latitude: lat, longitude: lng })
+                    }).then(response => response.json()).then(data => {
+                        const statusDiv = document.getElementById('status');
+                        if (data.isWithinGeofence) {
+                            statusDiv.textContent = 'You are within the geofence. Attendance recorded!';
+                        } else {
+                            statusDiv.textContent = 'You are outside the geofence. Cannot check in.';
+                        }
+                    });
+                }, function() {
+                    document.getElementById('status').textContent = 'Error getting location.';
+                });
+            } else {
+                document.getElementById('status').textContent = 'Geolocation is not supported by this browser.';
+            }
+        });
+    </script>
+</body>
+</html>
