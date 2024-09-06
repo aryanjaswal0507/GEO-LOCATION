@@ -3,43 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geolocation Attendance</title>
+    <title>Geolocation Auto-Attendance</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        #status { margin-top: 20px; }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .status {
+            font-size: 2em;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        .container {
+            margin: 0 auto;
+            width: 60%;
+        }
+
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5em;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
-    <h1>Geolocation Attendance</h1>
-    <button id="checkInBtn">Check In</button>
-    <div id="status"></div>
+    <div class="container">
+        <h1>Auto-Attendance System using Geofencing</h1>
+        <p>Click the button to check your attendance status:</p>
+        <button class="button" onclick="checkAttendance()">Check Attendance</button>
+        <div class="status" id="status">Awaiting check...</div>
+    </div>
 
     <script>
-        document.getElementById('checkInBtn').addEventListener('click', function() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
+        // Geofencing parameters
+        const targetLatitude = 37.4221; // Latitude of the geofence center (example: Googleplex)
+        const targetLongitude = -122.0841; // Longitude of the geofence center
+        const geofenceRadius = 200; // Geofence radius in meters
 
-                    fetch('/api/validate-location', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ latitude: lat, longitude: lng })
-                    }).then(response => response.json()).then(data => {
-                        const statusDiv = document.getElementById('status');
-                        if (data.isWithinGeofence) {
-                            statusDiv.textContent = 'You are within the geofence. Attendance recorded!';
-                        } else {
-                            statusDiv.textContent = 'You are outside the geofence. Cannot check in.';
-                        }
-                    });
-                }, function() {
-                    document.getElementById('status').textContent = 'Error getting location.';
+        // Function to calculate the distance between two coordinates using Haversine formula
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            const distance = R * c;
+            return distance; // Distance in meters
+        }
+
+        // Function to check if the user is within the geofence
+        function checkAttendance() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const userLatitude = position.coords.latitude;
+                    const userLongitude = position.coords.longitude;
+
+                    // Calculate the distance between user and target location
+                    const distance = calculateDistance(userLatitude, userLongitude, targetLatitude, targetLongitude);
+
+                    // Check if the user is within the geofence
+                    if (distance <= geofenceRadius) {
+                        document.getElementById("status").innerText = "Present";
+                        document.getElementById("status").style.color = "green";
+                    } else {
+                        document.getElementById("status").innerText = "Absent";
+                        document.getElementById("status").style.color = "red";
+                    }
+                }, (error) => {
+                    // Handle geolocation error
+                    document.getElementById("status").innerText = "Geolocation error: " + error.message;
+                    document.getElementById("status").style.color = "orange";
                 });
             } else {
-                document.getElementById('status').textContent = 'Geolocation is not supported by this browser.';
+                // Browser does not support Geolocation API
+                document.getElementById("status").innerText = "Geolocation not supported by your browser.";
+                document.getElementById("status").style.color = "orange";
             }
-        });
+        }
     </script>
 </body>
 </html>
