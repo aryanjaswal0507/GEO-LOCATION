@@ -86,40 +86,47 @@
 
         // Initialize the Web Worker
         if (window.Worker) {
-            worker = new Worker('worker.js');
+            try {
+                worker = new Worker('worker.js');
 
-            // Handle messages from the worker
-            worker.addEventListener('message', function(event) {
-                const data = event.data;
-                if (data.type === 'update') {
-                    document.getElementById('status').innerText = data.isPresent ? "Present" : "Absent";
-                    document.getElementById('status').style.color = data.isPresent ? "green" : "red";
-                    document.getElementById('distance').innerText = `Distance: ${data.distance ? data.distance.toFixed(2) + ' meters' : 'N/A'}`;
-                    document.getElementById('timer').innerText = `Time Present: ${formatTime(data.elapsedSeconds)}`;
-                    document.getElementById('pauseCount').innerText = `Pause Count: ${data.pauseCount}`;
-                } else if (data.type === 'error') {
-                    document.getElementById('status').innerText = "Geolocation error: " + data.message;
-                    document.getElementById('status').style.color = "orange";
+                // Handle messages from the worker
+                worker.addEventListener('message', function(event) {
+                    const data = event.data;
+                    if (data.type === 'update') {
+                        document.getElementById('status').innerText = data.isPresent ? "Present" : "Absent";
+                        document.getElementById('status').style.color = data.isPresent ? "green" : "red";
+                        document.getElementById('distance').innerText = `Distance: ${data.distance ? data.distance.toFixed(2) + ' meters' : 'N/A'}`;
+                        document.getElementById('timer').innerText = `Time Present: ${formatTime(data.elapsedSeconds)}`;
+                        document.getElementById('pauseCount').innerText = `Pause Count: ${data.pauseCount}`;
+                    } else if (data.type === 'error') {
+                        document.getElementById('status').innerText = "Geolocation error: " + data.message;
+                        document.getElementById('status').style.color = "orange";
+                    }
+                });
+
+                // Function to format time in HH:MM:SS
+                function formatTime(seconds) {
+                    const hours = Math.floor(seconds / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    const secs = seconds % 60;
+                    return String(hours).padStart(2, '0') + ":" + String(minutes).padStart(2, '0') + ":" + String(secs).padStart(2, '0');
                 }
-            });
 
-            // Function to format time in HH:MM:SS
-            function formatTime(seconds) {
-                const hours = Math.floor(seconds / 3600);
-                const minutes = Math.floor((seconds % 3600) / 60);
-                const secs = seconds % 60;
-                return String(hours).padStart(2, '0') + ":" + String(minutes).padStart(2, '0') + ":" + String(secs).padStart(2, '0');
+                // Automatically check attendance every 10 seconds
+                setInterval(() => {
+                    if (worker) {
+                        worker.postMessage({ type: 'check' });
+                    }
+                }, 10000); // 10000 milliseconds = 10 seconds
+
+                // Perform an initial check right after page load
+                worker.postMessage({ type: 'check' });
+
+            } catch (e) {
+                console.error('Error initializing Web Worker:', e);
+                document.getElementById('status').innerText = "Error initializing Web Worker.";
+                document.getElementById('status').style.color = "orange";
             }
-
-            // Automatically check attendance every 10 seconds
-            setInterval(() => {
-                if (worker) {
-                    worker.postMessage({ type: 'check' });
-                }
-            }, 10000); // 10000 milliseconds = 10 seconds
-
-            // Perform an initial check right after page load
-            worker.postMessage({ type: 'check' });
         } else {
             document.getElementById('status').innerText = "Your browser does not support Web Workers.";
             document.getElementById('status').style.color = "orange";
