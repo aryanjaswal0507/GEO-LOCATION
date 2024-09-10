@@ -46,11 +46,11 @@
 
     <script>
         // Geofencing parameters
-        const targetLatitude = 31.515876; // Latitude of the geofence center (example: Googleplex)
+        const targetLatitude = 31.515876; // Latitude of the geofence center
         const targetLongitude = 76.878357; // Longitude of the geofence center
         const geofenceRadius = 200; // Geofence radius in meters
 
-        // Function to calculate the distance between two coordinates using Haversine formula
+        // Function to calculate the distance between two coordinates using the Haversine formula
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3; // Earth radius in meters
             const φ1 = lat1 * Math.PI / 180;
@@ -74,8 +74,15 @@
                     const userLatitude = position.coords.latitude;
                     const userLongitude = position.coords.longitude;
 
+                    // Log user coordinates to debug
+                    console.log("User Latitude: ", userLatitude);
+                    console.log("User Longitude: ", userLongitude);
+
                     // Calculate the distance between user and target location
                     const distance = calculateDistance(userLatitude, userLongitude, targetLatitude, targetLongitude);
+                    
+                    // Log calculated distance to debug
+                    console.log("Distance from target: ", distance);
 
                     // Check if the user is within the geofence
                     if (distance <= geofenceRadius) {
