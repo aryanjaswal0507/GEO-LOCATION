@@ -22,7 +22,7 @@
             width: 60%;
         }
 
-        .distance {
+        .distance, .timer {
             font-size: 1.5em;
             margin-top: 15px;
         }
@@ -31,16 +31,21 @@
 <body>
     <div class="container">
         <h1>Auto-Attendance System using Geofencing</h1>
-        <p>Attendance status is checked automatically every 10 seconds:</p>
+        <p>Attendance is checked every 10 seconds:</p>
         <div class="status" id="status">Awaiting check...</div>
-        <div class="distance" id="distance">Distance: N/A</div> <!-- Distance display -->
+        <div class="distance" id="distance">Distance: N/A</div>
+        <div class="timer" id="timer">Time Present: 00:00:00</div> <!-- Timer display -->
     </div>
 
     <script>
         // Geofencing parameters
         const targetLatitude = 31.515876; // Latitude of the geofence center
         const targetLongitude = 76.878357; // Longitude of the geofence center
-        const geofenceRadius = 60; // Geofence radius in meters
+        const geofenceRadius = 200; // Geofence radius in meters
+
+        let timerInterval; // To hold the setInterval for timer
+        let isPresent = false; // To track user presence status
+        let elapsedSeconds = 0; // To track elapsed time in seconds
 
         // Function to calculate the distance between two coordinates using the Haversine formula
         function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -59,6 +64,36 @@
             return distance; // Distance in meters
         }
 
+        // Function to start the timer
+        function startTimer() {
+            if (!timerInterval) {
+                timerInterval = setInterval(() => {
+                    elapsedSeconds++;
+                    displayTime();
+                }, 1000); // Increment the timer every second
+            }
+        }
+
+        // Function to stop the timer
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        // Function to display the elapsed time in HH:MM:SS format
+        function displayTime() {
+            const hours = Math.floor(elapsedSeconds / 3600);
+            const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+            const seconds = elapsedSeconds % 60;
+
+            const formattedTime = 
+                String(hours).padStart(2, '0') + ":" + 
+                String(minutes).padStart(2, '0') + ":" + 
+                String(seconds).padStart(2, '0');
+
+            document.getElementById("timer").innerText = `Time Present: ${formattedTime}`;
+        }
+
         // Function to check if the user is within the geofence
         function checkAttendance() {
             if (navigator.geolocation) {
@@ -66,16 +101,9 @@
                     const userLatitude = position.coords.latitude;
                     const userLongitude = position.coords.longitude;
 
-                    // Log user coordinates to debug
-                    console.log("User Latitude: ", userLatitude);
-                    console.log("User Longitude: ", userLongitude);
-
                     // Calculate the distance between user and target location
                     const distance = calculateDistance(userLatitude, userLongitude, targetLatitude, targetLongitude);
                     
-                    // Log calculated distance to debug
-                    console.log("Distance from target: ", distance);
-
                     // Display the distance on the webpage
                     document.getElementById("distance").innerText = `Distance: ${distance.toFixed(2)} meters`;
 
@@ -83,9 +111,17 @@
                     if (distance <= geofenceRadius) {
                         document.getElementById("status").innerText = "Present";
                         document.getElementById("status").style.color = "green";
+                        if (!isPresent) {
+                            isPresent = true;
+                            startTimer(); // Start or continue the timer
+                        }
                     } else {
                         document.getElementById("status").innerText = "Absent";
                         document.getElementById("status").style.color = "red";
+                        if (isPresent) {
+                            isPresent = false;
+                            stopTimer(); // Stop the timer when user is absent
+                        }
                     }
                 }, (error) => {
                     // Handle geolocation error
