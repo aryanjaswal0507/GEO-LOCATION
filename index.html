@@ -22,7 +22,7 @@
             width: 60%;
         }
 
-        .distance, .timer {
+        .distance, .timer, .pause-count {
             font-size: 1.5em;
             margin-top: 15px;
         }
@@ -34,18 +34,20 @@
         <p>Attendance is checked every 10 seconds:</p>
         <div class="status" id="status">Awaiting check...</div>
         <div class="distance" id="distance">Distance: N/A</div>
-        <div class="timer" id="timer">Time Present: 00:00:00</div> <!-- Timer display -->
+        <div class="timer" id="timer">Time Present: 00:00:00</div>
+        <div class="pause-count" id="pauseCount">Pause Count: 0</div> <!-- Pause count display -->
     </div>
 
     <script>
         // Geofencing parameters
         const targetLatitude = 31.515876; // Latitude of the geofence center
         const targetLongitude = 76.878357; // Longitude of the geofence center
-        const geofenceRadius = 60; // Geofence radius in meters
+        const geofenceRadius = 200; // Geofence radius in meters
 
         let timerInterval; // To hold the setInterval for timer
         let isPresent = false; // To track user presence status
         let elapsedSeconds = 0; // To track elapsed time in seconds
+        let pauseCount = 0; // To count how many times the timer is paused
 
         // Function to calculate the distance between two coordinates using the Haversine formula
         function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -94,6 +96,11 @@
             document.getElementById("timer").innerText = `Time Present: ${formattedTime}`;
         }
 
+        // Function to display the number of times the timer was paused
+        function displayPauseCount() {
+            document.getElementById("pauseCount").innerText = `Pause Count: ${pauseCount}`;
+        }
+
         // Function to check if the user is within the geofence
         function checkAttendance() {
             if (navigator.geolocation) {
@@ -121,6 +128,8 @@
                         if (isPresent) {
                             isPresent = false;
                             stopTimer(); // Stop the timer when user is absent
+                            pauseCount++; // Increment the pause count
+                            displayPauseCount(); // Update the pause count on the page
                         }
                     }
                 }, (error) => {
