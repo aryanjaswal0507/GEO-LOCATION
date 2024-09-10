@@ -34,6 +34,11 @@
         .button:hover {
             background-color: #45a049;
         }
+
+        .distance {
+            font-size: 1.5em;
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
@@ -42,6 +47,7 @@
         <p>Click the button to check your attendance status:</p>
         <button class="button" onclick="checkAttendance()">Check Attendance</button>
         <div class="status" id="status">Awaiting check...</div>
+        <div class="distance" id="distance">Distance: N/A</div> <!-- Added distance div -->
     </div>
 
     <script>
@@ -83,6 +89,9 @@
                     
                     // Log calculated distance to debug
                     console.log("Distance from target: ", distance);
+
+                    // Display the distance on the webpage
+                    document.getElementById("distance").innerText = `Distance: ${distance.toFixed(2)} meters`;
 
                     // Check if the user is within the geofence
                     if (distance <= geofenceRadius) {
