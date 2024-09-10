@@ -35,7 +35,7 @@
         <div class="status" id="status">Awaiting check...</div>
         <div class="distance" id="distance">Distance: N/A</div>
         <div class="timer" id="timer">Time Present: 00:00:00</div>
-        <div class="pause-count" id="pauseCount">Shift Count: 0</div> <!-- Pause count display -->
+        <div class="pause-count" id="pauseCount">pause Count: 0</div> <!-- Pause count display -->
     </div>
 
     <script>
@@ -98,7 +98,7 @@
 
         // Function to display the number of times the timer was paused
         function displayPauseCount() {
-            document.getElementById("pauseCount").innerText = `Pause Count: ${pauseCount}`;
+            document.getElementById("pauseCount").innerText = `Shift Count: ${pauseCount}`;
         }
 
         // Function to check if the user is within the geofence
