@@ -65,8 +65,12 @@ function stopTimer() {
 // Handle messages from the main thread
 self.addEventListener('message', function(event) {
     if (event.data.type === 'check') {
-        navigator.geolocation.getCurrentPosition(checkAttendance, function(error) {
-            postMessage({ type: 'error', message: error.message });
-        });
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(checkAttendance, function(error) {
+                postMessage({ type: 'error', message: error.message });
+            });
+        } else {
+            postMessage({ type: 'error', message: 'Geolocation not supported.' });
+        }
     }
 });
