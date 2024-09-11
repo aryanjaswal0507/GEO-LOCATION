@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geolocation Auto-Attendance</title>
+    <title>Geolocation Auto-Attendance with Login</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,6 +28,42 @@
             color: #333;
             margin-bottom: 20px;
             font-size: 2.5em;
+        }
+
+        .login-form {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .login-form input {
+            font-size: 1.2em;
+            padding: 10px;
+            margin: 10px;
+            width: 80%;
+            max-width: 400px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .login-form button {
+            font-size: 1.2em;
+            padding: 10px;
+            margin: 10px;
+            width: 50%;
+            max-width: 200px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .login-form button:hover {
+            background-color: #45a049;
+        }
+
+        .attendance-system {
+            display: none;
         }
 
         .status {
@@ -73,12 +109,23 @@
 </head>
 <body>
     <div class="container">
-        <h1>Auto-Attendance System using Geofencing</h1>
-        <p>Attendance is checked every 5 seconds:</p>
-        <div class="status" id="status">Awaiting check...</div>
-        <div class="distance" id="distance">Distance: N/A</div>
-        <div class="timer" id="timer">Time Present: 00:00:00</div>
-        <div class="pause-count" id="pauseCount">Shift count: 0</div>
+        <!-- Login Form -->
+        <h1>Login to Auto-Attendance System</h1>
+        <div class="login-form" id="loginForm">
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="validateLogin()">Login</button>
+        </div>
+
+        <!-- Attendance System -->
+        <div class="attendance-system" id="attendanceSystem">
+            <h1>Auto-Attendance System using Geofencing</h1>
+            <p>Attendance is checked every 5 seconds:</p>
+            <div class="status" id="status">Awaiting check...</div>
+            <div class="distance" id="distance">Distance: N/A</div>
+            <div class="timer" id="timer">Time Present: 00:00:00</div>
+            <div class="pause-count" id="pauseCount">Shift count: 0</div>
+        </div>
     </div>
 
     <script>
@@ -89,15 +136,38 @@
         const maxSessionTime = 2 * 60 * 60; // Max session time in seconds (2 hours)
         const alertBoundary = geofenceRadius - 10; // Boundary alert when within 10 meters
 
-        let timerInterval; // For holding the setInterval timer
-        let isPresent = false; // Track user presence status
-        let elapsedSeconds = 0; // Track elapsed time in seconds
-        let pauseCount = 0; // Track how many times the user left the geofence
-        let attendanceLog = []; // To store attendance logs
+        let timerInterval;
+        let isPresent = false;
+        let elapsedSeconds = 0;
+        let pauseCount = 0;
+        let attendanceLog = [];
+
+        // Predefined user credentials
+        const validUsername = "user123";
+        const validPassword = "password123";
+
+        // Show login form initially
+        document.getElementById("loginForm").style.display = "block";
+
+        // Function to validate login
+        function validateLogin() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            if (username === validUsername && password === validPassword) {
+                // Hide login form and show attendance system
+                document.getElementById("loginForm").style.display = "none";
+                document.getElementById("attendanceSystem").style.display = "block";
+                checkAttendance();
+                setInterval(checkAttendance, 5000);
+            } else {
+                alert("Invalid username or password!");
+            }
+        }
 
         // Function to calculate distance using the Haversine formula
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Earth's radius in meters
+            const R = 6371e3;
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -108,7 +178,7 @@
                       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-            return R * c; // Distance in meters
+            return R * c;
         }
 
         // Function to start the timer
@@ -117,8 +187,7 @@
                 timerInterval = setInterval(() => {
                     elapsedSeconds++;
                     displayTime();
-                    checkSessionTime(); // Check if max session time has been reached
-                }, 1000); // Increment timer every second
+                }, 1000);
             }
         }
 
@@ -137,56 +206,6 @@
             document.getElementById("timer").innerText = `Time Present: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
 
-        // Function to display pause count
-        function displayPauseCount() {
-            document.getElementById("pauseCount").innerText = `Shift count: ${pauseCount}`;
-        }
-
-        // Function to log attendance
-        function logAttendance(status) {
-            const currentTime = new Date().toLocaleString();
-            attendanceLog.push({ time: currentTime, status: status });
-            console.log(attendanceLog); // You can replace this with a server-side storage
-        }
-
-        // Function to check if session time limit is reached
-        function checkSessionTime() {
-            if (elapsedSeconds >= maxSessionTime) {
-                stopTimer();
-                document.getElementById("status").innerText = "Session Ended";
-                document.getElementById("status").style.color = "red";
-                displaySummary(); // Display the summary when session ends
-            }
-        }
-
-        // Function to send notifications
-        function sendNotification(message) {
-            if (Notification.permission === "granted") {
-                new Notification(message);
-            } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        new Notification(message);
-                    }
-                });
-            }
-        }
-
-        // Function to display summary at the end of the session
-        function displaySummary() {
-            const totalHours = Math.floor(elapsedSeconds / 3600);
-            const totalMinutes = Math.floor((elapsedSeconds % 3600) / 60);
-            const totalTime = `${totalHours} hours ${totalMinutes} minutes`;
-            alert(`Attendance Summary:\nTotal Time Present: ${totalTime}\nShift Count: ${pauseCount}`);
-        }
-
-        // Function to check if user is near the geofence boundary
-        function checkBoundary(distance) {
-            if (distance > alertBoundary && distance <= geofenceRadius) {
-                sendNotification("You are near the boundary of the geofence.");
-            }
-        }
-
         // Function to check attendance status
         function checkAttendance() {
             if (navigator.geolocation) {
@@ -194,53 +213,39 @@
                     const userLatitude = position.coords.latitude;
                     const userLongitude = position.coords.longitude;
 
-                    // Calculate distance between user and geofence center
                     const distance = calculateDistance(userLatitude, userLongitude, targetLatitude, targetLongitude);
-
-                    // Update the distance display
                     document.getElementById("distance").innerText = `Distance: ${distance.toFixed(2)} meters`;
 
-                    // Check if user is within the geofence
                     if (distance <= geofenceRadius) {
                         document.getElementById("status").innerText = "Present";
                         document.getElementById("status").style.color = "green";
                         if (!isPresent) {
                             isPresent = true;
-                            startTimer(); // Start or resume the timer
+                            startTimer();
                             logAttendance("Present");
-                            sendNotification("You are present in the geofence area!");
                         }
                     } else {
                         document.getElementById("status").innerText = "Absent";
                         document.getElementById("status").style.color = "red";
                         if (isPresent) {
                             isPresent = false;
-                            stopTimer(); // Stop the timer
-                            pauseCount++; // Increment shift count
-                            displayPauseCount(); // Update shift count display
+                            stopTimer();
+                            pauseCount++;
                             logAttendance("Absent");
-                            sendNotification("You have exited the geofence area.");
                         }
                     }
-
-                    checkBoundary(distance); // Check boundary proximity
-                }, (error) => {
-                    // Handle geolocation errors
-                    document.getElementById("status").innerText = "Geolocation error: " + error.message;
-                    document.getElementById("status").style.color = "orange";
                 });
             } else {
-                // If geolocation is not supported
-                document.getElementById("status").innerText = "Geolocation not supported by your browser.";
-                document.getElementById("status").style.color = "orange";
+                document.getElementById("status").innerText = "Geolocation not supported.";
             }
         }
 
-        // Automatically check attendance every 5 seconds
-        setInterval(checkAttendance, 5000);
-
-        // Perform initial attendance check
-        checkAttendance();
+        // Function to log attendance (for demo purposes)
+        function logAttendance(status) {
+            const currentTime = new Date().toLocaleString();
+            attendanceLog.push({ time: currentTime, status: status });
+            console.log(attendanceLog); // You can replace this with a server-side storage
+        }
     </script>
 </body>
 </html>
