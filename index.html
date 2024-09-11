@@ -30,42 +30,6 @@
             font-size: 2.5em;
         }
 
-        .login-form {
-            display: none;
-            margin-top: 20px;
-        }
-
-        .login-form input {
-            font-size: 1.2em;
-            padding: 10px;
-            margin: 10px;
-            width: 80%;
-            max-width: 400px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        .login-form button {
-            font-size: 1.2em;
-            padding: 10px;
-            margin: 10px;
-            width: 50%;
-            max-width: 200px;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .login-form button:hover {
-            background-color: #45a049;
-        }
-
-        .attendance-system {
-            display: none;
-        }
-
         .status {
             font-size: 2em;
             font-weight: bold;
@@ -100,6 +64,34 @@
             border-radius: 5px;
         }
 
+        .login-form {
+            margin-top: 50px;
+        }
+
+        input[type="text"], input[type="password"] {
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1.2em;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #00796b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.2em;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #004d40;
+        }
+
         @media (max-width: 768px) {
             .container {
                 width: 90%;
@@ -108,69 +100,63 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Login Form -->
-        <h1>Login to Auto-Attendance System</h1>
-        <div class="login-form" id="loginForm">
-            <input type="text" id="username" placeholder="Username">
-            <input type="password" id="password" placeholder="Password">
-            <button onclick="validateLogin()">Login</button>
-        </div>
+    <!-- Login Form -->
+    <div class="container login-form" id="loginForm">
+        <h1>Login to Access Attendance System</h1>
+        <input type="text" id="username" placeholder="Enter Username">
+        <input type="password" id="password" placeholder="Enter Password">
+        <button onclick="login()">Login</button>
+    </div>
 
-        <!-- Attendance System -->
-        <div class="attendance-system" id="attendanceSystem">
-            <h1>Auto-Attendance System using Geofencing</h1>
-            <p>Attendance is checked every 5 seconds:</p>
-            <div class="status" id="status">Awaiting check...</div>
-            <div class="distance" id="distance">Distance: N/A</div>
-            <div class="timer" id="timer">Time Present: 00:00:00</div>
-            <div class="pause-count" id="pauseCount">Shift count: 0</div>
-        </div>
+    <!-- Attendance System -->
+    <div class="container" id="attendanceSystem" style="display: none;">
+        <h1>Auto-Attendance System using Geofencing</h1>
+        <p>Attendance is checked every 5 seconds:</p>
+        <div class="status" id="status">Awaiting check...</div>
+        <div class="distance" id="distance">Distance: N/A</div>
+        <div class="timer" id="timer">Time Present: 00:00:00</div>
+        <div class="pause-count" id="pauseCount">shift count: 0</div> <!-- shift count display -->
     </div>
 
     <script>
+        // Array of valid user credentials
+        const users = [
+            { username: "user123", password: "password123" },
+            { username: "user456", password: "password456" },
+            { username: "admin", password: "admin123" }
+        ];
+
+        // Function to handle login
+        function login() {
+            const enteredUsername = document.getElementById("username").value;
+            const enteredPassword = document.getElementById("password").value;
+
+            // Check if entered credentials match any user in the users array
+            const user = users.find(user => user.username === enteredUsername && user.password === enteredPassword);
+
+            if (user) {
+                alert("Login successful!");
+                document.getElementById("loginForm").style.display = "none";
+                document.getElementById("attendanceSystem").style.display = "block";
+                checkAttendance(); // Start checking attendance after login
+            } else {
+                alert("Invalid username or password. Please try again.");
+            }
+        }
+
         // Geofencing parameters
         const targetLatitude = 31.515876; // Latitude of the geofence center
         const targetLongitude = 76.878357; // Longitude of the geofence center
         const geofenceRadius = 60; // Geofence radius in meters
-        const maxSessionTime = 2 * 60 * 60; // Max session time in seconds (2 hours)
-        const alertBoundary = geofenceRadius - 10; // Boundary alert when within 10 meters
 
-        let timerInterval;
-        let isPresent = false;
-        let elapsedSeconds = 0;
-        let pauseCount = 0;
-        let attendanceLog = [];
+        let timerInterval; // To hold the setInterval for timer
+        let isPresent = false; // To track user presence status
+        let elapsedSeconds = 0; // To track elapsed time in seconds
+        let pauseCount = 0; // To count how many times the timer is paused
 
-        // Predefined user credentials
-        const users = [
-            { username: "Aryan", password: "aryan123" },
-            { username: "Nitin", password: "nitin456" },
-            { username: "Varun", password: "varun123" }
-        ];
-
-        // Show login form initially
-        document.getElementById("loginForm").style.display = "block";
-
-        // Function to validate login
-        function validateLogin() {
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-
-            if (username === validUsername && password === validPassword) {
-                // Hide login form and show attendance system
-                document.getElementById("loginForm").style.display = "none";
-                document.getElementById("attendanceSystem").style.display = "block";
-                checkAttendance();
-                setInterval(checkAttendance, 5000);
-            } else {
-                alert("Invalid username or password!");
-            }
-        }
-
-        // Function to calculate distance using the Haversine formula
+        // Function to calculate the distance between two coordinates using the Haversine formula
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
+            const R = 6371e3; // Earth radius in meters
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -181,7 +167,8 @@
                       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-            return R * c;
+            const distance = R * c;
+            return distance; // Distance in meters
         }
 
         // Function to start the timer
@@ -190,7 +177,7 @@
                 timerInterval = setInterval(() => {
                     elapsedSeconds++;
                     displayTime();
-                }, 1000);
+                }, 1000); // Increment the timer every second
             }
         }
 
@@ -206,48 +193,61 @@
             const minutes = Math.floor((elapsedSeconds % 3600) / 60);
             const seconds = elapsedSeconds % 60;
 
-            document.getElementById("timer").innerText = `Time Present: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            const formattedTime = 
+                String(hours).padStart(2, '0') + ":" + 
+                String(minutes).padStart(2, '0') + ":" + 
+                String(seconds).padStart(2, '0');
+
+            document.getElementById("timer").innerText = `Time Present: ${formattedTime}`;
         }
 
-        // Function to check attendance status
+        // Function to display the number of times the timer was paused
+        function displayPauseCount() {
+            document.getElementById("pauseCount").innerText = `shift count: ${pauseCount}`;
+        }
+
+        // Function to check if the user is within the geofence
         function checkAttendance() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((position) => {
                     const userLatitude = position.coords.latitude;
                     const userLongitude = position.coords.longitude;
 
+                    // Calculate the distance between user and target location
                     const distance = calculateDistance(userLatitude, userLongitude, targetLatitude, targetLongitude);
+                    
+                    // Display the distance on the webpage
                     document.getElementById("distance").innerText = `Distance: ${distance.toFixed(2)} meters`;
 
+                    // Check if the user is within the geofence
                     if (distance <= geofenceRadius) {
                         document.getElementById("status").innerText = "Present";
                         document.getElementById("status").style.color = "green";
                         if (!isPresent) {
                             isPresent = true;
-                            startTimer();
-                            logAttendance("Present");
+                            startTimer(); // Start or continue the timer
                         }
                     } else {
                         document.getElementById("status").innerText = "Absent";
                         document.getElementById("status").style.color = "red";
                         if (isPresent) {
                             isPresent = false;
-                            stopTimer();
-                            pauseCount++;
-                            logAttendance("Absent");
+                            stopTimer(); // Stop the timer when user is absent
+                            pauseCount++; // Increment the shift count
+                            displayPauseCount(); // Update the shift count on the page
                         }
                     }
+                }, (error) => {
+                    // Handle geolocation error
+                    document.getElementById("status").innerText = "Geolocation error.";
+                    document.getElementById("status").style.color = "red";
                 });
             } else {
-                document.getElementById("status").innerText = "Geolocation not supported.";
+                alert("Geolocation is not supported by this browser.");
             }
-        }
 
-        // Function to log attendance (for demo purposes)
-        function logAttendance(status) {
-            const currentTime = new Date().toLocaleString();
-            attendanceLog.push({ time: currentTime, status: status });
-            console.log(attendanceLog); // You can replace this with a server-side storage
+            // Check attendance every 5 seconds
+            setTimeout(checkAttendance, 5000);
         }
     </script>
 </body>
