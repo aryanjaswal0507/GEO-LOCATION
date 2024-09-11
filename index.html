@@ -5,116 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Geolocation Auto-Attendance with Admin Panel</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-            background-color: #f0f8ff;
-        }
-
-        .container {
-            margin: 0 auto;
-            width: 60%;
-            max-width: 800px;
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            margin-top: 50px;
-        }
-
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 2.5em;
-        }
-
-        .status {
-            font-size: 2em;
-            font-weight: bold;
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
-            background-color: #e0f7fa;
-            color: #00796b;
-        }
-
-        .distance, .timer, .pause-count {
-            font-size: 1.5em;
-            margin-top: 15px;
-            color: #555;
-        }
-
-        .distance {
-            background-color: #e8f5e9;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .timer {
-            background-color: #fff3e0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .pause-count {
-            background-color: #fbe9e7;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .login-form {
-            margin-top: 50px;
-        }
-
-        input[type="text"], input[type="password"] {
-            padding: 10px;
-            margin: 5px 0;
-            width: 100%;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 1.2em;
-        }
-
-        button {
-            padding: 10px 20px;
-            background-color: #00796b;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 1.2em;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background-color: #004d40;
-        }
-
-        .admin-panel {
-            margin-top: 20px;
-        }
-
-        .admin-panel table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .admin-panel table, th, td {
-            border: 1px solid #ccc;
-        }
-
-        .admin-panel th, td {
-            padding: 10px;
-            text-align: center;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                width: 90%;
-            }
-        }
+        /* Your existing styles */
     </style>
 </head>
 <body>
@@ -133,7 +24,7 @@
         <div class="status" id="status">Awaiting check...</div>
         <div class="distance" id="distance">Distance: N/A</div>
         <div class="timer" id="timer">Time Present: 00:00:00</div>
-        <div class="pause-count" id="pauseCount">shift count: 0</div>
+        <div class="pause-count" id="pauseCount">Shift Count: 0</div>
     </div>
 
     <!-- Admin Panel -->
@@ -157,15 +48,28 @@
     <script>
         // Array of valid user credentials
         const users = [
-            { username: "nitin", password: "nitin123" },
-            { username: "varun", password: "varun123" },
-            { username: "rahul", password: "rahul123" },
-            { username: "aryan", password: "aryan123", isAdmin: true } // Admin Account
+            { username: "user123", password: "password123" },
+            { username: "user456", password: "password456" },
+            { username: "admin", password: "admin123" },
+            { username: "aryan", password: "admin@123", isAdmin: true } // Admin Account
         ];
 
         // Logged-in user details
         let currentUser;
         let loggedInUsers = [];
+
+        // Store attendance information
+        const userAttendanceData = {};
+
+        // Geofencing parameters
+        const targetLatitude = 31.515876;
+        const targetLongitude = 76.878357;
+        const geofenceRadius = 60;
+
+        let timerInterval;
+        let isPresent = false;
+        let elapsedSeconds = 0;
+        let pauseCount = 0;
 
         // Function to handle login
         function login() {
@@ -181,7 +85,7 @@
                 if (user.isAdmin) {
                     document.getElementById("loginForm").style.display = "none";
                     document.getElementById("adminPanel").style.display = "block";
-                    displayUserDetails();
+                    displayUserDetails(); // Display user details on admin login
                 } else {
                     document.getElementById("loginForm").style.display = "none";
                     document.getElementById("attendanceSystem").style.display = "block";
@@ -191,19 +95,6 @@
                 alert("Invalid username or password. Please try again.");
             }
         }
-
-        // Store attendance information
-        const userAttendanceData = {};
-
-        // Geofencing parameters
-        const targetLatitude = 31.515876;
-        const targetLongitude = 76.878357;
-        const geofenceRadius = 60;
-
-        let timerInterval;
-        let isPresent = false;
-        let elapsedSeconds = 0;
-        let pauseCount = 0;
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
@@ -248,7 +139,7 @@
         }
 
         function displayPauseCount() {
-            document.getElementById("pauseCount").innerText = `shift count: ${pauseCount}`;
+            document.getElementById("pauseCount").innerText = `Shift Count: ${pauseCount}`;
         }
 
         function checkAttendance() {
@@ -280,6 +171,11 @@
                         timePresent: elapsedSeconds,
                         pauseCount: pauseCount
                     };
+
+                    // Refresh admin panel if the current user is admin
+                    if (currentUser.isAdmin) {
+                        displayUserDetails();
+                    }
                 });
             } else {
                 alert("Geolocation is not supported by this browser.");
