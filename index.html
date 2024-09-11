@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geolocation Auto-Attendance with Login</title>
+    <title>Geolocation Auto-Attendance with Admin Panel</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -92,6 +92,24 @@
             background-color: #004d40;
         }
 
+        .admin-panel {
+            margin-top: 20px;
+        }
+
+        .admin-panel table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .admin-panel table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        .admin-panel th, td {
+            padding: 10px;
+            text-align: center;
+        }
+
         @media (max-width: 768px) {
             .container {
                 width: 90%;
@@ -108,23 +126,46 @@
         <button onclick="login()">Login</button>
     </div>
 
-    <!-- Attendance System -->
+    <!-- Attendance System for Users -->
     <div class="container" id="attendanceSystem" style="display: none;">
         <h1>Auto-Attendance System using Geofencing</h1>
         <p>Attendance is checked every 5 seconds:</p>
         <div class="status" id="status">Awaiting check...</div>
         <div class="distance" id="distance">Distance: N/A</div>
         <div class="timer" id="timer">Time Present: 00:00:00</div>
-        <div class="pause-count" id="pauseCount">shift count: 0</div> <!-- shift count display -->
+        <div class="pause-count" id="pauseCount">shift count: 0</div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="container admin-panel" id="adminPanel" style="display: none;">
+        <h1>Admin Panel: User Attendance Details</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Status</th>
+                    <th>Time Present</th>
+                    <th>Shift Count</th>
+                </tr>
+            </thead>
+            <tbody id="userDetailsTable">
+                <!-- User details will be inserted here -->
+            </tbody>
+        </table>
     </div>
 
     <script>
         // Array of valid user credentials
         const users = [
-            { username: "varun", password: "varun123" },
             { username: "nitin", password: "nitin123" },
-            { username: "aryan", password: "aryan123" }
+            { username: "varun", password: "varun123" },
+            { username: "rahul", password: "rahul123" },
+            { username: "aryan", password: "aryan123", isAdmin: true } // Admin Account
         ];
+
+        // Logged-in user details
+        let currentUser;
+        let loggedInUsers = [];
 
         // Function to handle login
         function login() {
@@ -136,27 +177,36 @@
 
             if (user) {
                 alert("Login successful!");
-                document.getElementById("loginForm").style.display = "none";
-                document.getElementById("attendanceSystem").style.display = "block";
-                checkAttendance(); // Start checking attendance after login
+                currentUser = user;
+                if (user.isAdmin) {
+                    document.getElementById("loginForm").style.display = "none";
+                    document.getElementById("adminPanel").style.display = "block";
+                    displayUserDetails();
+                } else {
+                    document.getElementById("loginForm").style.display = "none";
+                    document.getElementById("attendanceSystem").style.display = "block";
+                    checkAttendance(); // Start checking attendance after login
+                }
             } else {
                 alert("Invalid username or password. Please try again.");
             }
         }
 
+        // Store attendance information
+        const userAttendanceData = {};
+
         // Geofencing parameters
-        const targetLatitude = 31.515876; // Latitude of the geofence center
-        const targetLongitude = 76.878357; // Longitude of the geofence center
-        const geofenceRadius = 60; // Geofence radius in meters
+        const targetLatitude = 31.515876;
+        const targetLongitude = 76.878357;
+        const geofenceRadius = 60;
 
-        let timerInterval; // To hold the setInterval for timer
-        let isPresent = false; // To track user presence status
-        let elapsedSeconds = 0; // To track elapsed time in seconds
-        let pauseCount = 0; // To count how many times the timer is paused
+        let timerInterval;
+        let isPresent = false;
+        let elapsedSeconds = 0;
+        let pauseCount = 0;
 
-        // Function to calculate the distance between two coordinates using the Haversine formula
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Earth radius in meters
+            const R = 6371e3;
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -167,27 +217,23 @@
                       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-            const distance = R * c;
-            return distance; // Distance in meters
+            return R * c;
         }
 
-        // Function to start the timer
         function startTimer() {
             if (!timerInterval) {
                 timerInterval = setInterval(() => {
                     elapsedSeconds++;
                     displayTime();
-                }, 1000); // Increment the timer every second
+                }, 1000);
             }
         }
 
-        // Function to stop the timer
         function stopTimer() {
             clearInterval(timerInterval);
             timerInterval = null;
         }
 
-        // Function to display the elapsed time in HH:MM:SS format
         function displayTime() {
             const hours = Math.floor(elapsedSeconds / 3600);
             const minutes = Math.floor((elapsedSeconds % 3600) / 60);
@@ -201,46 +247,39 @@
             document.getElementById("timer").innerText = `Time Present: ${formattedTime}`;
         }
 
-        // Function to display the number of times the timer was paused
         function displayPauseCount() {
             document.getElementById("pauseCount").innerText = `shift count: ${pauseCount}`;
         }
 
-        // Function to check if the user is within the geofence
         function checkAttendance() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((position) => {
                     const userLatitude = position.coords.latitude;
                     const userLongitude = position.coords.longitude;
 
-                    // Calculate the distance between user and target location
                     const distance = calculateDistance(userLatitude, userLongitude, targetLatitude, targetLongitude);
-                    
-                    // Display the distance on the webpage
-                    document.getElementById("distance").innerText = `Distance: ${distance.toFixed(2)} meters`;
+                    document.getElementById("distance").innerText = `Distance: ${Math.round(distance)} meters`;
 
-                    // Check if the user is within the geofence
                     if (distance <= geofenceRadius) {
                         document.getElementById("status").innerText = "Present";
                         document.getElementById("status").style.color = "green";
-                        if (!isPresent) {
-                            isPresent = true;
-                            startTimer(); // Start or continue the timer
-                        }
+                        isPresent = true;
+                        startTimer();
                     } else {
                         document.getElementById("status").innerText = "Absent";
                         document.getElementById("status").style.color = "red";
-                        if (isPresent) {
-                            isPresent = false;
-                            stopTimer(); // Stop the timer when user is absent
-                            pauseCount++; // Increment the shift count
-                            displayPauseCount(); // Update the shift count on the page
-                        }
+                        isPresent = false;
+                        pauseCount++;
+                        displayPauseCount();
+                        stopTimer();
                     }
-                }, (error) => {
-                    // Handle geolocation error
-                    document.getElementById("status").innerText = "Geolocation error.";
-                    document.getElementById("status").style.color = "red";
+
+                    // Update user attendance data
+                    userAttendanceData[currentUser.username] = {
+                        status: isPresent ? "Present" : "Absent",
+                        timePresent: elapsedSeconds,
+                        pauseCount: pauseCount
+                    };
                 });
             } else {
                 alert("Geolocation is not supported by this browser.");
@@ -248,6 +287,25 @@
 
             // Check attendance every 5 seconds
             setTimeout(checkAttendance, 5000);
+        }
+
+        // Display user details for admin
+        function displayUserDetails() {
+            const tableBody = document.getElementById("userDetailsTable");
+            tableBody.innerHTML = ''; // Clear table before adding new data
+
+            users.forEach(user => {
+                const userData = userAttendanceData[user.username] || { status: 'Absent', timePresent: 0, pauseCount: 0 };
+                const time = new Date(userData.timePresent * 1000).toISOString().substr(11, 8);
+
+                const row = `<tr>
+                    <td>${user.username}</td>
+                    <td>${userData.status}</td>
+                    <td>${time}</td>
+                    <td>${userData.pauseCount}</td>
+                </tr>`;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
         }
     </script>
 </body>
