@@ -78,7 +78,7 @@
         <div class="status" id="status">Awaiting check...</div>
         <div class="distance" id="distance">Distance: N/A</div>
         <div class="timer" id="timer">Time Present: 00:00:00</div>
-        <div class="pause-count" id="pauseCount">shift count: 0</div> <!-- shift count display -->
+        <div class="pause-count" id="pauseCount">Shift count: 0</div>
     </div>
 
     <script>
@@ -86,15 +86,18 @@
         const targetLatitude = 31.515876; // Latitude of the geofence center
         const targetLongitude = 76.878357; // Longitude of the geofence center
         const geofenceRadius = 60; // Geofence radius in meters
+        const maxSessionTime = 2 * 60 * 60; // Max session time in seconds (2 hours)
+        const alertBoundary = geofenceRadius - 10; // Boundary alert when within 10 meters
 
-        let timerInterval; // To hold the setInterval for timer
-        let isPresent = false; // To track user presence status
-        let elapsedSeconds = 0; // To track elapsed time in seconds
-        let pauseCount = 0; // To count how many times the timer is paused
+        let timerInterval; // For holding the setInterval timer
+        let isPresent = false; // Track user presence status
+        let elapsedSeconds = 0; // Track elapsed time in seconds
+        let pauseCount = 0; // Track how many times the user left the geofence
+        let attendanceLog = []; // To store attendance logs
 
-        // Function to calculate the distance between two coordinates using the Haversine formula
+        // Function to calculate distance using the Haversine formula
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Earth radius in meters
+            const R = 6371e3; // Earth's radius in meters
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -105,8 +108,7 @@
                       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-            const distance = R * c;
-            return distance; // Distance in meters
+            return R * c; // Distance in meters
         }
 
         // Function to start the timer
@@ -115,7 +117,8 @@
                 timerInterval = setInterval(() => {
                     elapsedSeconds++;
                     displayTime();
-                }, 1000); // Increment the timer every second
+                    checkSessionTime(); // Check if max session time has been reached
+                }, 1000); // Increment timer every second
             }
         }
 
@@ -131,66 +134,112 @@
             const minutes = Math.floor((elapsedSeconds % 3600) / 60);
             const seconds = elapsedSeconds % 60;
 
-            const formattedTime = 
-                String(hours).padStart(2, '0') + ":" + 
-                String(minutes).padStart(2, '0') + ":" + 
-                String(seconds).padStart(2, '0');
-
-            document.getElementById("timer").innerText = `Time Present: ${formattedTime}`;
+            document.getElementById("timer").innerText = `Time Present: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
 
-        // Function to display the number of times the timer was paused
+        // Function to display pause count
         function displayPauseCount() {
-            document.getElementById("pauseCount").innerText = `shift count: ${pauseCount}`;
+            document.getElementById("pauseCount").innerText = `Shift count: ${pauseCount}`;
         }
 
-        // Function to check if the user is within the geofence
+        // Function to log attendance
+        function logAttendance(status) {
+            const currentTime = new Date().toLocaleString();
+            attendanceLog.push({ time: currentTime, status: status });
+            console.log(attendanceLog); // You can replace this with a server-side storage
+        }
+
+        // Function to check if session time limit is reached
+        function checkSessionTime() {
+            if (elapsedSeconds >= maxSessionTime) {
+                stopTimer();
+                document.getElementById("status").innerText = "Session Ended";
+                document.getElementById("status").style.color = "red";
+                displaySummary(); // Display the summary when session ends
+            }
+        }
+
+        // Function to send notifications
+        function sendNotification(message) {
+            if (Notification.permission === "granted") {
+                new Notification(message);
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        new Notification(message);
+                    }
+                });
+            }
+        }
+
+        // Function to display summary at the end of the session
+        function displaySummary() {
+            const totalHours = Math.floor(elapsedSeconds / 3600);
+            const totalMinutes = Math.floor((elapsedSeconds % 3600) / 60);
+            const totalTime = `${totalHours} hours ${totalMinutes} minutes`;
+            alert(`Attendance Summary:\nTotal Time Present: ${totalTime}\nShift Count: ${pauseCount}`);
+        }
+
+        // Function to check if user is near the geofence boundary
+        function checkBoundary(distance) {
+            if (distance > alertBoundary && distance <= geofenceRadius) {
+                sendNotification("You are near the boundary of the geofence.");
+            }
+        }
+
+        // Function to check attendance status
         function checkAttendance() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((position) => {
                     const userLatitude = position.coords.latitude;
                     const userLongitude = position.coords.longitude;
 
-                    // Calculate the distance between user and target location
+                    // Calculate distance between user and geofence center
                     const distance = calculateDistance(userLatitude, userLongitude, targetLatitude, targetLongitude);
-                    
-                    // Display the distance on the webpage
+
+                    // Update the distance display
                     document.getElementById("distance").innerText = `Distance: ${distance.toFixed(2)} meters`;
 
-                    // Check if the user is within the geofence
+                    // Check if user is within the geofence
                     if (distance <= geofenceRadius) {
                         document.getElementById("status").innerText = "Present";
                         document.getElementById("status").style.color = "green";
                         if (!isPresent) {
                             isPresent = true;
-                            startTimer(); // Start or continue the timer
+                            startTimer(); // Start or resume the timer
+                            logAttendance("Present");
+                            sendNotification("You are present in the geofence area!");
                         }
                     } else {
                         document.getElementById("status").innerText = "Absent";
                         document.getElementById("status").style.color = "red";
                         if (isPresent) {
                             isPresent = false;
-                            stopTimer(); // Stop the timer when user is absent
-                            pauseCount++; // Increment the shift count
-                            displayPauseCount(); // Update the shift count on the page
+                            stopTimer(); // Stop the timer
+                            pauseCount++; // Increment shift count
+                            displayPauseCount(); // Update shift count display
+                            logAttendance("Absent");
+                            sendNotification("You have exited the geofence area.");
                         }
                     }
+
+                    checkBoundary(distance); // Check boundary proximity
                 }, (error) => {
-                    // Handle geolocation error
+                    // Handle geolocation errors
                     document.getElementById("status").innerText = "Geolocation error: " + error.message;
                     document.getElementById("status").style.color = "orange";
                 });
             } else {
-                // Browser does not support Geolocation API
+                // If geolocation is not supported
                 document.getElementById("status").innerText = "Geolocation not supported by your browser.";
                 document.getElementById("status").style.color = "orange";
             }
         }
 
-        // Automatically check attendance every 10 seconds
-        setInterval(checkAttendance, 5000); // 10000 milliseconds = 10 seconds
+        // Automatically check attendance every 5 seconds
+        setInterval(checkAttendance, 5000);
 
-        // Perform an initial check right after page load
+        // Perform initial attendance check
         checkAttendance();
     </script>
 </body>
