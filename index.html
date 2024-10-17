@@ -8,66 +8,23 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            margin: 0;
-            padding: 0;
-            background-color: #f0f8ff;
-        }
-
-        .container {
-            margin: 0 auto;
-            width: 60%;
-            max-width: 800px;
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
             margin-top: 50px;
-        }
-
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 2.5em;
         }
 
         .status {
             font-size: 2em;
             font-weight: bold;
             margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
-            background-color: #e0f7fa;
-            color: #00796b;
+        }
+
+        .container {
+            margin: 0 auto;
+            width: 60%;
         }
 
         .distance, .timer, .pause-count {
             font-size: 1.5em;
             margin-top: 15px;
-            color: #555;
-        }
-
-        .distance {
-            background-color: #e8f5e9;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .timer {
-            background-color: #fff3e0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .pause-count {
-            background-color: #fbe9e7;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                width: 90%;
-            }
         }
     </style>
 </head>
@@ -78,7 +35,7 @@
         <div class="status" id="status">Awaiting check...</div>
         <div class="distance" id="distance">Distance: N/A</div>
         <div class="timer" id="timer">Time Present: 00:00:00</div>
-        <div class="pause-count" id="pauseCount">Pause Count: 0</div> <!-- Pause count display -->
+        <div class="pause-count" id="pauseCount">pause Count: 0</div> <!-- Pause count display -->
     </div>
 
     <script>
@@ -141,7 +98,7 @@
 
         // Function to display the number of times the timer was paused
         function displayPauseCount() {
-            document.getElementById("pauseCount").innerText = `Pause Count: ${pauseCount}`;
+            document.getElementById("pauseCount").innerText = `Shift Count: ${pauseCount}`;
         }
 
         // Function to check if the user is within the geofence
