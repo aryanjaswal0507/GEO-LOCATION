@@ -74,11 +74,11 @@
 <body>
     <div class="container">
         <h1>Auto-Attendance System using Geofencing</h1>
-        <p>Attendance is checked every 5 seconds:</p>
+        <p>Attendance is checked every 10 seconds:</p>
         <div class="status" id="status">Awaiting check...</div>
         <div class="distance" id="distance">Distance: N/A</div>
         <div class="timer" id="timer">Time Present: 00:00:00</div>
-        <div class="pause-count" id="pauseCount">shift count: 0</div> <!-- shift count display -->
+        <div class="pause-count" id="pauseCount">Pause Count: 0</div> <!-- Pause count display -->
     </div>
 
     <script>
@@ -141,7 +141,7 @@
 
         // Function to display the number of times the timer was paused
         function displayPauseCount() {
-            document.getElementById("pauseCount").innerText = `shift count: ${pauseCount}`;
+            document.getElementById("pauseCount").innerText = `Pause Count: ${pauseCount}`;
         }
 
         // Function to check if the user is within the geofence
@@ -171,8 +171,8 @@
                         if (isPresent) {
                             isPresent = false;
                             stopTimer(); // Stop the timer when user is absent
-                            pauseCount++; // Increment the shift count
-                            displayPauseCount(); // Update the shift count on the page
+                            pauseCount++; // Increment the pause count
+                            displayPauseCount(); // Update the pause count on the page
                         }
                     }
                 }, (error) => {
@@ -188,7 +188,7 @@
         }
 
         // Automatically check attendance every 10 seconds
-        setInterval(checkAttendance, 5000); // 10000 milliseconds = 10 seconds
+        setInterval(checkAttendance, 10000); // 10000 milliseconds = 10 seconds
 
         // Perform an initial check right after page load
         checkAttendance();
