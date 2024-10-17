@@ -4,7 +4,7 @@
 
 This project implements an Auto-Attendance system using geolocation technology. It checks attendance every 10 seconds, determining if a user is within a specified geofence radius. If the user is present, the system tracks their time spent within the geofence.
 
-![Geolocation Auto-Attendance Screenshot](screenshot.png) <!-- Replace with your actual screenshot file -->
+![Geolocation Auto-Attendance Screenshot](sample001.png) 
 
 ## Features
 
